@@ -31,14 +31,7 @@
 
 package io.grpc.examples.advanced;
 
-import static io.grpc.stub.ClientCalls.blockingUnaryCall;
-
-import io.grpc.CallOptions;
-import io.grpc.Channel;
-import io.grpc.ManagedChannel;
-import io.grpc.ManagedChannelBuilder;
-import io.grpc.MethodDescriptor;
-import io.grpc.StatusRuntimeException;
+import io.grpc.*;
 import io.grpc.examples.helloworld.GreeterGrpc;
 import io.grpc.examples.helloworld.HelloReply;
 import io.grpc.examples.helloworld.HelloRequest;
@@ -50,91 +43,97 @@ import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import static io.grpc.stub.ClientCalls.blockingUnaryCall;
+
 /**
  * Advanced example of how to swap out the serialization logic.  Normal users do not need to do
  * this.  This code is not intended to be a production-ready implementation, since JSON encoding
  * is slow.  Additionally, JSON serialization as implemented may be not resilient to malicious
  * input.
- *
+ * <p>
  * <p>If you are considering implementing your own serialization logic, contact the grpc team at
  * https://groups.google.com/forum/#!forum/grpc-io
  */
 public final class HelloJsonClient {
-  private static final Logger logger = Logger.getLogger(HelloWorldClient.class.getName());
+    private static final Logger logger = Logger.getLogger(HelloWorldClient.class.getName());
 
-  private final ManagedChannel channel;
-  private final HelloJsonStub blockingStub;
+    private final ManagedChannel channel;
+    private final HelloJsonStub blockingStub;
 
-  /** Construct client connecting to HelloWorld server at {@code host:port}. */
-  public HelloJsonClient(String host, int port) {
-    channel = ManagedChannelBuilder.forAddress(host, port)
-        .usePlaintext(true)
-        .build();
-    blockingStub = new HelloJsonStub(channel);
-  }
-
-  public void shutdown() throws InterruptedException {
-    channel.shutdown().awaitTermination(5, TimeUnit.SECONDS);
-  }
-
-  /** Say hello to server. */
-  public void greet(String name) {
-    logger.info("Will try to greet " + name + " ...");
-    HelloRequest request = HelloRequest.newBuilder().setName(name).build();
-    HelloReply response;
-    try {
-      response = blockingStub.sayHello(request);
-    } catch (StatusRuntimeException e) {
-      logger.log(Level.WARNING, "RPC failed: {0}", e.getStatus());
-      return;
+    /**
+     * Construct client connecting to HelloWorld server at {@code host:port}.
+     */
+    public HelloJsonClient(String host, int port) {
+        channel = ManagedChannelBuilder.forAddress(host, port)
+                .usePlaintext(true)
+                .build();
+        blockingStub = new HelloJsonStub(channel);
     }
-    logger.info("Greeting: " + response.getMessage());
-  }
 
-  /**
-   * Greet server. If provided, the first element of {@code args} is the name to use in the
-   * greeting.
-   */
-  public static void main(String[] args) throws Exception {
-    HelloJsonClient client = new HelloJsonClient("localhost", 50051);
-    try {
+    public void shutdown() throws InterruptedException {
+        channel.shutdown().awaitTermination(5, TimeUnit.SECONDS);
+    }
+
+    /**
+     * Say hello to server.
+     */
+    public void greet(String name) {
+        logger.info("Will try to greet " + name + " ...");
+        HelloRequest request = HelloRequest.newBuilder().setName(name).build();
+        HelloReply response;
+        try {
+            response = blockingStub.sayHello(request);
+        } catch (StatusRuntimeException e) {
+            logger.log(Level.WARNING, "RPC failed: {0}", e.getStatus());
+            return;
+        }
+        logger.info("Greeting: " + response.getMessage());
+    }
+
+    /**
+     * Greet server. If provided, the first element of {@code args} is the name to use in the
+     * greeting.
+     */
+    public static void main(String[] args) throws Exception {
+        HelloJsonClient client = new HelloJsonClient("localhost", 50051);
+        try {
       /* Access a service running on the local machine on port 50051 */
-      String user = "world";
-      if (args.length > 0) {
-        user = args[0]; /* Use the arg as the name to greet if provided */
-      }
-      client.greet(user);
-    } finally {
-      client.shutdown();
-    }
-  }
-
-  static final class HelloJsonStub extends AbstractStub<HelloJsonStub> {
-
-    static final MethodDescriptor<HelloRequest, HelloReply> METHOD_SAY_HELLO =
-        MethodDescriptor.create(
-            GreeterGrpc.METHOD_SAY_HELLO.getType(),
-            GreeterGrpc.METHOD_SAY_HELLO.getFullMethodName(),
-            ProtoUtils.jsonMarshaller(HelloRequest.getDefaultInstance()),
-            ProtoUtils.jsonMarshaller(HelloReply.getDefaultInstance()));
-
-    protected HelloJsonStub(Channel channel) {
-      super(channel);
+            String user = "world";
+            if (args.length > 0) {
+                user = args[0]; /* Use the arg as the name to greet if provided */
+            }
+            client.greet(user);
+        } finally {
+            client.shutdown();
+        }
     }
 
-    protected HelloJsonStub(Channel channel, CallOptions callOptions) {
-      super(channel, callOptions);
-    }
+    static final class HelloJsonStub extends AbstractStub<HelloJsonStub> {
 
-    @Override
-    protected HelloJsonStub build(Channel channel, CallOptions callOptions) {
-      return new HelloJsonStub(channel, callOptions);
-    }
+        static final MethodDescriptor<HelloRequest, HelloReply> METHOD_SAY_HELLO =
+                MethodDescriptor.create(
+                        GreeterGrpc.METHOD_SAY_HELLO.getType(),
+                        GreeterGrpc.METHOD_SAY_HELLO.getFullMethodName(),
+                        ProtoUtils.jsonMarshaller(HelloRequest.getDefaultInstance()),
+                        ProtoUtils.jsonMarshaller(HelloReply.getDefaultInstance()));
 
-    public HelloReply sayHello(HelloRequest request) {
-      return blockingUnaryCall(
-          getChannel(), METHOD_SAY_HELLO, getCallOptions(), request);
+        protected HelloJsonStub(Channel channel) {
+            super(channel);
+        }
+
+        protected HelloJsonStub(Channel channel, CallOptions callOptions) {
+            super(channel, callOptions);
+        }
+
+        @Override
+        protected HelloJsonStub build(Channel channel, CallOptions callOptions) {
+            return new HelloJsonStub(channel, callOptions);
+        }
+
+        public HelloReply sayHello(HelloRequest request) {
+            return blockingUnaryCall(
+                    getChannel(), METHOD_SAY_HELLO, getCallOptions(), request);
+        }
     }
-  }
 }
 

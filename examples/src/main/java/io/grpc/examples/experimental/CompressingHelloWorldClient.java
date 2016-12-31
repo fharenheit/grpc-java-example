@@ -44,61 +44,65 @@ import java.util.logging.Logger;
 
 /**
  * A simple client that requests a greeting from the
- *      {@link io.grpc.examples.helloworld.HelloWorldServer}.
- *
+ * {@link io.grpc.examples.helloworld.HelloWorldServer}.
+ * <p>
  * <p>This class should act a a drop in replacement for
- *      {@link io.grpc.examples.helloworld.HelloWorldClient}.
+ * {@link io.grpc.examples.helloworld.HelloWorldClient}.
  */
 public class CompressingHelloWorldClient {
-  private static final Logger logger =
-      Logger.getLogger(CompressingHelloWorldClient.class.getName());
+    private static final Logger logger =
+            Logger.getLogger(CompressingHelloWorldClient.class.getName());
 
-  private final ManagedChannel channel;
-  private final GreeterGrpc.GreeterBlockingStub blockingStub;
+    private final ManagedChannel channel;
+    private final GreeterGrpc.GreeterBlockingStub blockingStub;
 
-  /** Construct client connecting to HelloWorld server at {@code host:port}. */
-  public CompressingHelloWorldClient(String host, int port) {
-    channel = ManagedChannelBuilder.forAddress(host, port)
-        .usePlaintext(true)
-        .build();
-    blockingStub = GreeterGrpc.newBlockingStub(channel);
-  }
-
-  public void shutdown() throws InterruptedException {
-    channel.shutdown().awaitTermination(5, TimeUnit.SECONDS);
-  }
-
-  /** Say hello to server. */
-  public void greet(String name) {
-    logger.info("Will try to greet " + name + " ...");
-    HelloRequest request = HelloRequest.newBuilder().setName(name).build();
-    HelloReply response;
-    try {
-      // This enables compression for requests. Independent of this setting, servers choose whether
-      // to compress responses.
-      response = blockingStub.withCompression("gzip").sayHello(request);
-    } catch (StatusRuntimeException e) {
-      logger.log(Level.WARNING, "RPC failed: {0}", e.getStatus());
-      return;
+    /**
+     * Construct client connecting to HelloWorld server at {@code host:port}.
+     */
+    public CompressingHelloWorldClient(String host, int port) {
+        channel = ManagedChannelBuilder.forAddress(host, port)
+                .usePlaintext(true)
+                .build();
+        blockingStub = GreeterGrpc.newBlockingStub(channel);
     }
-    logger.info("Greeting: " + response.getMessage());
-  }
 
-  /**
-   * Greet server. If provided, the first element of {@code args} is the name to use in the
-   * greeting.
-   */
-  public static void main(String[] args) throws Exception {
-    CompressingHelloWorldClient client = new CompressingHelloWorldClient("localhost", 50051);
-    try {
+    public void shutdown() throws InterruptedException {
+        channel.shutdown().awaitTermination(5, TimeUnit.SECONDS);
+    }
+
+    /**
+     * Say hello to server.
+     */
+    public void greet(String name) {
+        logger.info("Will try to greet " + name + " ...");
+        HelloRequest request = HelloRequest.newBuilder().setName(name).build();
+        HelloReply response;
+        try {
+            // This enables compression for requests. Independent of this setting, servers choose whether
+            // to compress responses.
+            response = blockingStub.withCompression("gzip").sayHello(request);
+        } catch (StatusRuntimeException e) {
+            logger.log(Level.WARNING, "RPC failed: {0}", e.getStatus());
+            return;
+        }
+        logger.info("Greeting: " + response.getMessage());
+    }
+
+    /**
+     * Greet server. If provided, the first element of {@code args} is the name to use in the
+     * greeting.
+     */
+    public static void main(String[] args) throws Exception {
+        CompressingHelloWorldClient client = new CompressingHelloWorldClient("localhost", 50051);
+        try {
       /* Access a service running on the local machine on port 50051 */
-      String user = "world";
-      if (args.length > 0) {
-        user = args[0]; /* Use the arg as the name to greet if provided */
-      }
-      client.greet(user);
-    } finally {
-      client.shutdown();
+            String user = "world";
+            if (args.length > 0) {
+                user = args[0]; /* Use the arg as the name to greet if provided */
+            }
+            client.greet(user);
+        } finally {
+            client.shutdown();
+        }
     }
-  }
 }
